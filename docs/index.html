@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="유니테스트 뉴스">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="apple-touch-icon" href="icon.png">
+<title>유니테스트 페로브스카이트</title>
+<style>
+:root{--bg:#F3F5F7;--card:#fff;--ink:#12202E;--sub:#6A7785;--line:#D5DCE3;--accent:#E8A100;
+  box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0E1822;--card:#16232F;--ink:#E8EEF3;--sub:#8A9AA8;--line:#263544}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:-apple-system,"Apple SD Gothic Neo",sans-serif;line-height:1.45}
+header{position:sticky;top:env(safe-area-inset-top,0px);background:var(--bg);padding:14px 16px 10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:flex-end}
+h1{margin:0;font-size:20px;font-weight:700;letter-spacing:-.02em}
+small{color:var(--sub);font-size:12px}
+button{font:inherit;font-size:14px;padding:8px 14px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+main{padding:0 16px 40px;max-width:640px;margin:0 auto}
+a.item{display:block;padding:14px 0;border-bottom:1px solid var(--line);color:inherit;text-decoration:none}
+.t{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.m{font-size:12px;color:var(--sub);margin-top:4px}
+.new .t::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-right:8px}
+.day{font-size:13px;font-weight:700;color:var(--sub);padding:18px 0 0}
+.empty{padding:60px 0;text-align:center;color:var(--sub)}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>유니테스트 페로브스카이트</h1><small id="upd">불러오는 중…</small></div>
+  <button id="re">새로고침</button>
+</header>
+<main id="list"></main>
+<script>
+const $=id=>document.getElementById(id);
+const fmt=d=>new Date(d).toLocaleDateString('ko-KR',{month:'long',day:'numeric',weekday:'short'});
+const ago=d=>{const m=(Date.now()-new Date(d))/6e4;return m<60?`${Math.max(1,m|0)}분 전`:m<1440?`${(m/60)|0}시간 전`:fmt(d)};
+let last=0;try{last=+localStorage.getItem('seen')||0}catch(e){}
+async function load(){
+  $('upd').textContent='불러오는 중…';
+  try{
+    const r=await fetch('news.json?t='+Date.now());const d=await r.json();
+    $('upd').textContent='마지막 확인 '+ago(d.updated);
+    if(!d.items.length){$('list').innerHTML='<div class="empty">아직 수집된 기사가 없습니다.</div>';return}
+    let html='',day='';
+    for(const it of d.items){
+      const dd=fmt(it.published);
+      if(dd!==day){day=dd;html+=`<div class="day">${dd}</div>`}
+      const isNew=new Date(it.first_seen)>last;
+      html+=`<a class="item${isNew?' new':''}" href="${it.link}" target="_blank" rel="noopener"><div class="t">${it.title.replace(/</g,'&lt;')}</div><div class="m">${it.source||''} · ${ago(it.published)}</div></a>`;
+    }
+    $('list').innerHTML=html;
+    try{localStorage.setItem('seen',Date.now())}catch(e){}
+  }catch(e){$('upd').textContent='불러오지 못했습니다. 연결을 확인하고 새로고침하세요.'}
+}
+$('re').onclick=load;load();
+</script>
+</body>
+</html>
